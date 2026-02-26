@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:jaksmok_fe/extensions/snackbar_extension.dart';
+import 'package:jaksmok_fe/extensions/theme_extension.dart';
+import 'package:jaksmok_fe/screens/home_screen.dart';
+import 'package:jaksmok_fe/services/api_service.dart';
 import 'package:jaksmok_fe/widgets/custom_text_field.dart';
 import 'package:jaksmok_fe/widgets/primary_button.dart';
 
@@ -12,20 +16,24 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  String? _requireUsername;
-  String? _requirePassword;
-  String? _errorMessage;
+  final _formKey = GlobalKey<FormState>();
   bool _isObscureText = true;
   bool _isLoading = false;
 
   @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context).colorScheme;
     return Scaffold(
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        color: theme.primary,
+        color: context.primary,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.start,
@@ -36,7 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Text(
                   'WELCOME',
                   style: TextStyle(
-                    color: theme.onPrimary,
+                    color: context.onPrimary,
                     fontSize: 50,
                     fontWeight: FontWeight.w700,
                   ),
@@ -54,38 +62,51 @@ class _LoginScreenState extends State<LoginScreen> {
                     topLeft: Radius.circular(24),
                     topRight: Radius.circular(24),
                   ),
-                  color: theme.surfaceContainerHigh,
+                  color: context.surfaceContainerHigh,
                 ),
                 child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      CustomTextField(
-                        label: 'Username',
-                        controller: _usernameController,
-                        error: _requireUsername,
-                        isObscureText: false,
-                        hintText: 'Enter username',
-                      ),
-                      const SizedBox(height: 20),
-                      CustomTextField(
-                        label: 'Password',
-                        controller: _passwordController,
-                        error: _requirePassword,
-                        isObscureText: _isObscureText,
-                        hintText: 'Enter username',
-                        showPassword: () {
-                          setState(() {
-                            _isObscureText = !_isObscureText;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 35),
-                      PrimaryButton(
-                        onPressed: () => _handleLogin(),
-                        isLoading: _isLoading,
-                        buttonText: 'Login',
-                      ),
-                    ],
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        CustomTextField(
+                          label: 'Username',
+                          controller: _usernameController,
+                          isObscureText: false,
+                          hintText: 'Enter username',
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Username is required';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                        CustomTextField(
+                          label: 'Password',
+                          controller: _passwordController,
+                          isObscureText: _isObscureText,
+                          hintText: 'Enter password',
+                          showPassword: () {
+                            setState(() {
+                              _isObscureText = !_isObscureText;
+                            });
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Password is required';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 35),
+                        PrimaryButton(
+                          onPressed: () => _handleLogin(),
+                          isLoading: _isLoading,
+                          buttonText: 'Login',
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -96,22 +117,35 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _handleLogin() {
-    bool isFormValid = true;
-    if (_usernameController.text.isEmpty) {
-      setState(() {
-        _requireUsername = 'Username requried';
-        isFormValid = false;
-      });
-    }
+  Future<void> _handleLogin() async {
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
 
-    if (_passwordController.text.isEmpty) {
-      setState(() {
-        _requirePassword = 'Password requried';
-        isFormValid = false;
-      });
-    }
+    if (!_formKey.currentState!.validate()) return;
 
-    if (!isFormValid) return;
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final isLogin = await ApiService.login(username, password);
+      if (!mounted) return;
+      if (!isLogin) {
+        context.showSnackBar('Invalid credential', true);
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+        context.showSnackBar('Login successfully', false);
+      }
+    } catch (err) {
+      context.showSnackBar('Something went wrong', true);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 }
