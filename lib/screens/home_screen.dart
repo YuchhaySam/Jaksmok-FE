@@ -110,11 +110,6 @@ class _HomeScreenState extends State<HomeScreen> {
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
       itemBuilder: (context, index) {
-        if (_errorMessage != null) {
-          developer.log(_errorMessage!);
-          return ErrorState(error: _errorMessage!, onPressed: _fetchPage);
-        }
-
         if (index < contents.length) {
           final book = contents[index];
           return Container(
@@ -192,6 +187,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           );
         }
+
+        if (_errorMessage != null) {
+          developer.log(_errorMessage!);
+          return ErrorState(error: _errorMessage!, onPressed: _fetchPage);
+        }
+
         if (_hasMore) {
           return _buildBookSkeleton();
         }

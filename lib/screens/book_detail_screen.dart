@@ -30,7 +30,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   }
 
   Future<void> _refreshData() async {
-    _loadBook();
+    setState(() {
+      _loadBook();
+    });
     try {
       await _book;
     } catch (error) {

@@ -125,7 +125,10 @@ class ApiService {
     final response = await _requestWrapper(() {
       return _dio.get(
         '/books',
-        queryParameters: {'size': ?size, 'page': ?page},
+        queryParameters: {
+          if (size != null) 'size': size,
+          if (page != null) 'page': page,
+        },
       );
     });
     final data = BookList.fromJson(response);
