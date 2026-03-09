@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:jaksmok_fe/extensions/theme_extension.dart';
+import 'package:jaksmok_fe/core/extensions/theme_extension.dart';
 
 //Define a custom text field widget, in the purpose of
 //reusing it where a text field is needed, plus we also

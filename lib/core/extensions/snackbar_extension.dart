@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:jaksmok_fe/extensions/theme_extension.dart';
+import 'package:jaksmok_fe/core/extensions/theme_extension.dart';
 
 extension SnackbarExtension on BuildContext {
   void showSnackBar(String message, isError) {

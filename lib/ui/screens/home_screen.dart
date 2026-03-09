@@ -1,13 +1,14 @@
-import 'dart:developer' as developer;
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:jaksmok_fe/extensions/snackbar_extension.dart';
-import 'package:jaksmok_fe/extensions/theme_extension.dart';
-import 'package:jaksmok_fe/models/book_list_model.dart';
-import 'package:jaksmok_fe/screens/book_detail_screen.dart';
-import 'package:jaksmok_fe/services/api_service.dart';
-import 'package:jaksmok_fe/widgets/error_state.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:jaksmok_fe/core/extensions/snackbar_extension.dart';
+import 'package:jaksmok_fe/core/extensions/theme_extension.dart';
+import 'package:jaksmok_fe/data/models/book_list_model.dart';
+import 'package:jaksmok_fe/logic/auth/auth_cubit.dart';
+import 'package:jaksmok_fe/logic/book/book_cubit.dart';
+import 'package:jaksmok_fe/logic/book/book_state.dart';
+import 'package:jaksmok_fe/ui/screens/book_detail_screen.dart';
+import 'package:logger/logger.dart';
 import 'package:shimmer/shimmer.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -19,48 +20,18 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _scrollController = ScrollController();
-  final int _size = 10;
-  List<Book> _books = [];
-  int _currentPage = 0;
-  bool _isLoading = false;
-  bool _hasMore = true;
-  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _fetchPage();
+    context.read<BookCubit>().fetchBooksList();
 
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >=
           _scrollController.position.maxScrollExtent - 200) {
-        _fetchPage();
+        context.read<BookCubit>().fetchBooksList();
       }
     });
-  }
-
-  Future<void> _fetchPage() async {
-    if (_isLoading || !_hasMore) return;
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-    try {
-      final bookList = await ApiService.getBooks(_size, _currentPage);
-      setState(() {
-        _books.addAll(bookList.content);
-        _currentPage++;
-        _hasMore = _currentPage < bookList.totalPages;
-        _isLoading = false;
-      });
-    } catch (error) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = "Could not load books. Tap to retry";
-      });
-      if (mounted) context.showSnackBar('Failed to load books', true);
-    }
   }
 
   @override
@@ -79,34 +50,39 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('HOME'),
         actions: [
           IconButton(
-            onPressed: () async => await ApiService.logout(),
+            onPressed: () async => context.read<AuthCubit>().logout(),
             icon: Icon(Icons.logout, color: context.primary),
           ),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          setState(() {
-            _books = [];
-            _currentPage = 0;
-            _hasMore = true;
-            _errorMessage = null;
-          });
-          await _fetchPage();
+          context.read<BookCubit>().refreshBooks();
         },
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 10),
-          child: _isLoading && _books.isEmpty
-              ? _buildInitialLoad()
-              : _buildListView(_books),
+          child: BlocBuilder<BookCubit, BookState>(
+            builder: (context, state) {
+              if (state is BookError) {
+                Logger().e(state.fullError);
+                context.showSnackBar(state.error, true);
+                return const Center(child: Text('Error: No data'));
+              }
+
+              if (state is BooksListSuccess) {
+                return _buildListView(state.books, state.hasMore);
+              }
+              return _buildInitialLoad();
+            },
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildListView(List<Book> contents) {
+  Widget _buildListView(List<Book> contents, bool hasMore) {
     return ListView.builder(
-      itemCount: contents.length + 1,
+      itemCount: contents.length + (hasMore ? 1 : 0),
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
       itemBuilder: (context, index) {
@@ -187,17 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           );
         }
-
-        if (_errorMessage != null) {
-          developer.log(_errorMessage!);
-          return ErrorState(error: _errorMessage!, onPressed: _fetchPage);
-        }
-
-        if (_hasMore) {
-          return _buildBookSkeleton();
-        }
-
-        return const SizedBox.shrink();
+        return _buildBookSkeleton();
       },
     );
   }
