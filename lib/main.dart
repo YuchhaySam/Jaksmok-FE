@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:jaksmok_fe/bloc_observer.dart';
 import 'package:jaksmok_fe/data/repositories/auth_repository.dart';
 import 'package:jaksmok_fe/data/repositories/book_repository.dart';
 import 'package:jaksmok_fe/logic/auth/auth_cubit.dart';
@@ -12,6 +13,7 @@ import 'package:jaksmok_fe/services/api_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final apiService = ApiService();
+  Bloc.observer = MyGlobalObserver();
   runApp(
     MultiRepositoryProvider(
       providers: [
@@ -61,17 +63,8 @@ class MyApp extends StatelessWidget {
         ),
       ),
 
-      //Check for authNotifier to skip the login screen if it's true
       home: BlocBuilder<AuthCubit, AuthState>(
         builder: (context, state) {
-          if (state is AuthInit) {
-            return const Scaffold(
-              body: Center(
-                child:
-                    CircularProgressIndicator(), // Or your custom Splash Screen
-              ),
-            );
-          }
           if (state is AuthAuthenticated) {
             return HomeScreen();
           }

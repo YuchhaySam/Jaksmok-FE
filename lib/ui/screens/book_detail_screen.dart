@@ -1,4 +1,3 @@
-import 'package:logger/logger.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -39,7 +38,6 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       body: BlocBuilder<BookCubit, BookState>(
         builder: (context, state) {
           if (state is BookError) {
-            Logger().e(state.fullError);
             context.showSnackBar(state.error, true);
             return const Center(child: Text('Error, No data'));
           }

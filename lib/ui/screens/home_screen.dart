@@ -8,7 +8,6 @@ import 'package:jaksmok_fe/logic/auth/auth_cubit.dart';
 import 'package:jaksmok_fe/logic/book/book_cubit.dart';
 import 'package:jaksmok_fe/logic/book/book_state.dart';
 import 'package:jaksmok_fe/ui/screens/book_detail_screen.dart';
-import 'package:logger/logger.dart';
 import 'package:shimmer/shimmer.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -24,12 +23,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<BookCubit>().fetchBooksList();
+
+    final cubit = context.read<BookCubit>();
+    cubit.fetchBooksList();
 
     _scrollController.addListener(() {
-      if (_scrollController.position.pixels >=
-          _scrollController.position.maxScrollExtent - 200) {
-        context.read<BookCubit>().fetchBooksList();
+      if (_scrollController.position.pixels ==
+          _scrollController.position.maxScrollExtent) {
+        cubit.fetchBooksList();
       }
     });
   }
@@ -61,18 +62,22 @@ class _HomeScreenState extends State<HomeScreen> {
         },
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 10),
-          child: BlocBuilder<BookCubit, BookState>(
-            builder: (context, state) {
+          child: BlocConsumer<BookCubit, BookState>(
+            listener: (context, state) {
               if (state is BookError) {
-                Logger().e(state.fullError);
                 context.showSnackBar(state.error, true);
-                return const Center(child: Text('Error: No data'));
+              }
+            },
+            builder: (context, state) {
+              final cubit = context.read<BookCubit>();
+              if (state is BookLoading && cubit.books.isEmpty) {
+                return _buildInitialLoad();
               }
 
-              if (state is BooksListSuccess) {
-                return _buildListView(state.books, state.hasMore);
+              if (state is BookError) {
+                return const Center(child: Text('Error: No data'));
               }
-              return _buildInitialLoad();
+              return _buildListView(cubit.books, cubit.hasMore);
             },
           ),
         ),
@@ -185,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildInitialLoad() {
     return ListView.builder(
-      itemCount: 8,
+      itemCount: (MediaQuery.of(context).size.height / 70).ceil(),
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) => _buildBookSkeleton(),
     );

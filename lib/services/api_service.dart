@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:jaksmok_fe/services/logger.dart';
 
 class ApiService {
   String? _authToken;
@@ -25,16 +26,11 @@ class ApiService {
           return handler.next(options);
         },
         onError: (error, handler) async {
-          final bool isSilent = error.requestOptions.extra['silent'] ?? false;
-          if (isSilent &&
-              (error.response?.statusCode == 401 ||
-                  error.response?.statusCode == 403)) {
-            return handler.resolve(error.response!);
-          }
           return handler.next(error);
         },
       ),
     );
+    _dio.interceptors.add(LoggingInterceptor());
   }
 
   void updateToken(String? token) {
@@ -66,10 +62,7 @@ class ApiService {
     await _requestWrapper(() {
       return _dio.get(
         '/books',
-        options: Options(
-          headers: {'authorization': 'Basic $encoded'},
-          extra: {'silent': true},
-        ),
+        options: Options(headers: {'authorization': 'Basic $encoded'}),
       );
     });
     return encoded;

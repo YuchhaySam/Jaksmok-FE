@@ -20,6 +20,5 @@ class BookSuccess extends BookState {
 
 class BookError extends BookState {
   final String error;
-  final Object fullError;
-  BookError({required this.error, required this.fullError});
+  BookError({required this.error});
 }

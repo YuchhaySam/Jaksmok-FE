@@ -29,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener(
+    return BlocListener<AuthCubit, AuthState>(
       listener: (context, state) {
         if (!mounted) return;
         if (state is AuthSuccess) {
@@ -110,9 +110,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: 35),
                           BlocBuilder<AuthCubit, AuthState>(
-                            buildWhen: (previous, current) =>
-                                current is AuthLoading ||
-                                previous is AuthLoading,
                             builder: (context, state) {
                               return PrimaryButton(
                                 onPressed: () {

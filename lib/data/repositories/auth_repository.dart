@@ -10,10 +10,12 @@ class AuthRepository {
 
   Future<void> initalizeAuth() async {
     final token = await _storage.read(key: _tokenKey);
-    if (token != null) return;
+    if (token != null) {
+      apiService.updateToken(token);
+      return;
+    }
     try {
       await apiService.getBooks(1, 1);
-      apiService.updateToken(token);
     } catch (_) {
       apiService.updateToken(null);
     }
@@ -23,6 +25,7 @@ class AuthRepository {
     try {
       final token = await apiService.login(username, password);
       await _storage.write(key: _tokenKey, value: token);
+      apiService.updateToken(token);
       return true;
     } catch (_) {
       return false;
