@@ -1,0 +1,40 @@
+{
+  "errors": {
+    "global": {
+      "no_internet": "No internet connection",
+      "unauthorized": "Unauthorized",
+      "server_error": "Internal server error",
+      "unknown": "Unknown error"
+    },
+    "auth": {
+      "invalid_credential": "Invalid credential"
+    },
+    "book": {
+      "not_found": "Book not found"
+    }
+  },
+  "login": {
+    "title": "WELCOME",
+    "button": "Login",
+    "user": {
+      "label": "Username",
+      "hint": "Enter username",
+      "error": "Username is required"
+    },
+    "password": {
+      "label": "Password",
+      "hint": "Enter password",
+      "error": "Password is required"
+    }
+  },
+  "home": {
+    "title": "HOME",
+    "empty_list": "No books avaiable"
+  },
+  "book_detail": {
+    "title": "BOOK DETAIL",
+    "country": "Country",
+    "language": "Language",
+    "pages": "Pages"
+  }
+}

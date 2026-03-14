@@ -1,39 +1,32 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:jaksmok_fe/bloc_observer.dart';
-import 'package:jaksmok_fe/data/repositories/auth_repository.dart';
-import 'package:jaksmok_fe/data/repositories/book_repository.dart';
-import 'package:jaksmok_fe/logic/auth/auth_cubit.dart';
-import 'package:jaksmok_fe/logic/auth/auth_state.dart';
-import 'package:jaksmok_fe/logic/book/book_cubit.dart';
-import 'package:jaksmok_fe/ui/screens/home_screen.dart';
-import 'package:jaksmok_fe/ui/screens/login_screen.dart';
-import 'package:jaksmok_fe/services/api_service.dart';
+import 'package:jaksmok_fe/core/di/injection.dart';
+import 'package:jaksmok_fe/core/localization/codegen_loader.g.dart';
+import 'package:jaksmok_fe/core/themes/app_theme.dart';
+import 'package:jaksmok_fe/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:jaksmok_fe/features/auth/presentation/cubit/auth_state.dart';
+import 'package:jaksmok_fe/features/book/presentation/cubit/book_detail/book_detail_cubit.dart';
+import 'package:jaksmok_fe/features/book/presentation/cubit/book_list/book_cubit.dart';
+import 'package:jaksmok_fe/features/book/presentation/screens/home_screen.dart';
+import 'package:jaksmok_fe/features/auth/presentation/screens/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final apiService = ApiService();
-  Bloc.observer = MyGlobalObserver();
+  await EasyLocalization.ensureInitialized();
+  await init();
   runApp(
-    MultiRepositoryProvider(
-      providers: [
-        RepositoryProvider<AuthRepository>(
-          create: (context) => AuthRepository(apiService: apiService),
-        ),
-        RepositoryProvider<BookRepository>(
-          create: (context) => BookRepository(apiService: apiService),
-        ),
-      ],
+    EasyLocalization(
+      supportedLocales: const [Locale('en', 'US')],
+      path: 'assets/translation',
+      assetLoader: const CodegenLoader(),
 
+      fallbackLocale: const Locale('en', 'US'),
       child: MultiBlocProvider(
         providers: [
-          BlocProvider(
-            create: (context) =>
-                AuthCubit(context.read<AuthRepository>())..checkAuthStatus(),
-          ),
-          BlocProvider(
-            create: (context) => BookCubit(context.read<BookRepository>()),
-          ),
+          BlocProvider(create: (create) => getIt<AuthCubit>()),
+          BlocProvider(create: (create) => getIt<BookCubit>()),
+          BlocProvider(create: (create) => getIt<BookDetailCubit>()),
         ],
         child: MyApp(),
       ),
@@ -48,28 +41,18 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        //Define the colorScheme so we can reuse it everywhere.
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFF67280),
-          primary: const Color(0xFFF67280),
-          onPrimary: const Color(0xFFFFFFFF),
-          surfaceContainerLowest: const Color(0xFFFCF9F6),
-          surfaceContainerLow: const Color(0xFFF5F0EA),
-          surfaceContainerHigh: const Color(0xFFFFFFFF),
-          onSurface: const Color(0xFF2D2D2D),
-          secondary: const Color(0xFF88AB8E),
-          error: const Color(0xFFFA003F),
-        ),
-      ),
-
+      theme: AppTheme.lightTheme,
+      localizationsDelegates: context.localizationDelegates,
+      supportedLocales: context.supportedLocales,
+      locale: context.locale,
       home: BlocBuilder<AuthCubit, AuthState>(
         builder: (context, state) {
-          if (state is AuthAuthenticated) {
-            return HomeScreen();
-          }
-
-          return LoginScreen();
+          return state.maybeWhen(
+            authenticated: () => const HomeScreen(),
+            unauthenticated: () => const LoginScreen(),
+            initial: () => const Center(child: CircularProgressIndicator()),
+            orElse: () => const LoginScreen(),
+          );
         },
       ),
     );
